@@ -55,6 +55,18 @@ alter table public.posts enable row level security;
 alter table public.comments enable row level security;
 alter table public.post_reactions enable row level security;
 
+drop policy if exists "admins read themselves" on public.admin_users;
+drop policy if exists "published posts are public" on public.posts;
+drop policy if exists "admins create posts" on public.posts;
+drop policy if exists "admins update posts" on public.posts;
+drop policy if exists "admins delete posts" on public.posts;
+drop policy if exists "approved comments are public" on public.comments;
+drop policy if exists "visitors submit comments" on public.comments;
+drop policy if exists "admins moderate comments" on public.comments;
+drop policy if exists "reactions are public" on public.post_reactions;
+drop policy if exists "visitors react" on public.post_reactions;
+drop policy if exists "visitors change reaction" on public.post_reactions;
+
 create policy "admins read themselves" on public.admin_users for select using (user_id = auth.uid());
 create policy "published posts are public" on public.posts for select using (status = 'published' or public.is_blog_admin());
 create policy "admins create posts" on public.posts for insert with check (public.is_blog_admin());
@@ -68,6 +80,10 @@ create policy "visitors react" on public.post_reactions for insert with check (t
 create policy "visitors change reaction" on public.post_reactions for update using (true) with check (true);
 
 insert into storage.buckets (id, name, public) values ('blog-media', 'blog-media', true) on conflict (id) do update set public = true;
+drop policy if exists "blog media public read" on storage.objects;
+drop policy if exists "admins upload blog media" on storage.objects;
+drop policy if exists "admins update blog media" on storage.objects;
+drop policy if exists "admins delete blog media" on storage.objects;
 create policy "blog media public read" on storage.objects for select using (bucket_id = 'blog-media');
 create policy "admins upload blog media" on storage.objects for insert with check (bucket_id = 'blog-media' and public.is_blog_admin());
 create policy "admins update blog media" on storage.objects for update using (bucket_id = 'blog-media' and public.is_blog_admin());
