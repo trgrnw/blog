@@ -1,0 +1,14 @@
+.rich {
+  direction: ltr;
+  text-align: left;
+  unicode-bidi: plaintext;
+}
+
+.admin nav button { display: flex; align-items: center; gap: 9px; }
+.admin nav button svg { width: 16px; height: 16px; }
+.nav-count { margin-left: auto; min-width: 22px; padding: 3px 7px; border-radius: 99px; background: var(--red); color: #fff; text-align: center; font-size: 10px; }
+.comment-row { align-items: flex-start; }
+.comment-row > div:first-child { min-width: 0; max-width: 800px; }
+.comment-body { margin: 10px 0 !important; color: #e1e1e5 !important; font-size: 15px !important; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-row button.approve { color: #40d487; }
+.admin-empty { padding: 45px 24px; text-align: center; color: var(--muted); }
