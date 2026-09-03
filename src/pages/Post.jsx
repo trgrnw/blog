@@ -1,0 +1,15 @@
+import { ArrowLeft, Clock, Eye } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import Layout from '../components/Layout'
+import { getEngagement, getPost, reactToPost, submitComment } from '../lib/posts'
+
+export default function Post() {
+  const { slug } = useParams(); const [post, setPost] = useState(null), [error, setError] = useState(''), [engagement, setEngagement] = useState({ reactions: {}, comments: [] }), [name, setName] = useState(''), [comment, setComment] = useState(''), [notice, setNotice] = useState('')
+  useEffect(() => { getPost(slug).then((value) => { setPost(value); return getEngagement(value.id) }).then(setEngagement).catch(() => setError('Публикация не найдена')) }, [slug])
+  async function reaction(value) { await reactToPost(post.id, value); setEngagement(await getEngagement(post.id)) }
+  async function sendComment(e) { e.preventDefault(); try { await submitComment(post.id, name, comment); setName(''); setComment(''); setNotice('Комментарий отправлен на модерацию.') } catch (reason) { setNotice(reason.message) } }
+  if (error) return <Layout><div className="shell state"><h1>{error}</h1><Link to="/">Вернуться в блог</Link></div></Layout>
+  if (!post) return <Layout><div className="shell state">Загрузка…</div></Layout>
+  return <Layout><article className="article shell"><Link className="back" to="/"><ArrowLeft/>Назад</Link><div className="article-head"><span className="category">{post.category}</span><h1>{post.title}</h1><p>{post.excerpt}</p><div className="article-meta"><span>{new Date(post.published_at).toLocaleDateString('ru-RU')}</span><span><Clock/> {post.reading_minutes || 3} мин</span><span><Eye/> {post.views || 0}</span></div></div>{post.cover_url && <img className="article-cover" src={post.cover_url} alt=""/>}<div className="prose" dangerouslySetInnerHTML={{ __html: post.content }}/><div className="tags">{(post.tags || []).map((tag) => <span key={tag}>#{tag}</span>)}</div><section className="engagement"><h2>Как тебе материал?</h2><div className="reactions"><button onClick={() => reaction('like')}>👍 Полезно <b>{engagement.reactions.like || 0}</b></button><button onClick={() => reaction('fire')}>🔥 Огонь <b>{engagement.reactions.fire || 0}</b></button><button onClick={() => reaction('idea')}>💡 Интересно <b>{engagement.reactions.idea || 0}</b></button></div><h2>Комментарии <span>{engagement.comments.length}</span></h2><form className="comment-form" onSubmit={sendComment}><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" minLength="2" maxLength="50" required/><textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Напишите комментарий" minLength="2" maxLength="2000" required/><button>Отправить</button>{notice && <p>{notice}</p>}</form><div className="comments">{engagement.comments.map((item) => <div key={item.id}><b>{item.author_name}</b><time>{new Date(item.created_at).toLocaleDateString('ru-RU')}</time><p>{item.body}</p></div>)}</div></section></article></Layout>
+}
