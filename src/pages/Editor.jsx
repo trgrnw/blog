@@ -1,52 +1,42 @@
-import { ArrowLeft, Bold, Code, Eye, Image, Italic, Link as LinkIcon, List, ListOrdered, Quote, Save, Underline } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { ArrowLeft, Bold, Check, ChevronDown, Code, Eye, Image, Italic, Link as LinkIcon, List, ListOrdered, Quote, Save, Underline, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { categories, savePost, uploadCover } from '../lib/posts'
 import '../admin-fixes.css'
 
 const blank = { title: '', slug: '', excerpt: '', category: 'Новости', tags: '', cover_url: '', content: '', status: 'draft', featured: false, recommended: false, reading_minutes: 3 }
+const readyTags = ['thugger', 'новости', 'обновление', 'релиз', 'боты', 'сайты', 'разработка', 'инструкция', 'roadmap', 'личное']
+const normalizeSlug = (value) => value.toLowerCase().trim().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/^-+|-+$/g, '')
 
 export default function Editor({ post, onClose }) {
   const [form, setForm] = useState(() => ({ ...blank, ...post, tags: Array.isArray(post?.tags) ? post.tags.join(', ') : post?.tags || '', content: post?.content || localStorage.getItem('thugger_editor_recovery') || '' }))
-  const [preview, setPreview] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [notice, setNotice] = useState('')
-  const body = useRef(null)
+  const [preview, setPreview] = useState(false), [saving, setSaving] = useState(false), [notice, setNotice] = useState('')
+  const [linkModal, setLinkModal] = useState(false), [linkValue, setLinkValue] = useState('https://'), [menu, setMenu] = useState(null)
+  const body = useRef(null), selection = useRef(null)
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }))
-  const command = (name, value = null) => { document.execCommand(name, false, value); body.current?.focus() }
+
+  useEffect(() => { const close = () => setMenu(null); const escape = (event) => { if (event.key === 'Escape') { setMenu(null); setLinkModal(false) } }; window.addEventListener('click', close); window.addEventListener('keydown', escape); return () => { window.removeEventListener('click', close); window.removeEventListener('keydown', escape) } }, [])
+  function rememberSelection() { const current = window.getSelection(); if (current?.rangeCount) selection.current = current.getRangeAt(0).cloneRange() }
+  function restoreSelection() { if (!selection.current) return; const current = window.getSelection(); current.removeAllRanges(); current.addRange(selection.current) }
+  function syncContent() { const content = body.current?.innerHTML ?? form.content; localStorage.setItem('thugger_editor_recovery', content); setForm((old) => old.content === content ? old : { ...old, content }); return content }
+  function command(name, value = null) { restoreSelection(); document.execCommand(name, false, value); body.current?.focus(); rememberSelection(); syncContent(); setMenu(null) }
+  function togglePreview() { if (!preview) syncContent(); setPreview((value) => !value) }
+  function openLinkModal() { rememberSelection(); setLinkValue('https://'); setLinkModal(true); setMenu(null) }
+  function applyLink(event) { event.preventDefault(); const value = linkValue.trim(); if (!/^https?:\/\//i.test(value)) { setNotice('Ссылка должна начинаться с http:// или https://'); return }; command('createLink', value); setLinkModal(false); setNotice('') }
+  function toggleTag(tag) { const values = form.tags.split(',').map((item) => item.trim()).filter(Boolean); update('tags', values.includes(tag) ? values.filter((item) => item !== tag).join(', ') : [...values, tag].join(', ')) }
 
   async function submit(status) {
-    setSaving(true)
-    try {
-      const content = body.current?.innerHTML || form.content
-      const published_at = status === 'published' ? (form.published_at || new Date().toISOString()) : form.published_at
-      await savePost({ ...form, content, status, published_at })
-      localStorage.removeItem('thugger_editor_recovery')
-      setNotice('Сохранено')
-      setTimeout(onClose, 500)
-    } catch (error) { setNotice(error.message) } finally { setSaving(false) }
+    const content = syncContent(), slug = normalizeSlug(form.slug || form.title)
+    if (!form.title.trim()) return setNotice('Добавьте заголовок публикации.')
+    if (!slug) return setNotice('Укажите корректный адрес статьи.')
+    setSaving(true); setNotice('')
+    try { const published_at = status === 'published' ? (form.published_at || new Date().toISOString()) : form.published_at; await savePost({ ...form, slug, content, status, published_at }); localStorage.removeItem('thugger_editor_recovery'); setNotice(status === 'published' ? 'Публикация опубликована.' : 'Черновик сохранён.'); setTimeout(onClose, 600) } catch (error) { setNotice(error.message) } finally { setSaving(false) }
   }
+  async function cover(event) { const file = event.target.files[0]; if (!file) return; try { update('cover_url', await uploadCover(file)) } catch (error) { setNotice(error.message) } }
 
-  async function cover(event) {
-    const file = event.target.files[0]
-    if (file) update('cover_url', await uploadCover(file))
-  }
-
-  return <div className="editor">
-    <header><button className="back" onClick={onClose}><ArrowLeft/>К публикациям</button><div><button onClick={() => setPreview(!preview)}><Eye/>Предпросмотр</button><button onClick={() => submit('draft')}><Save/>Черновик</button><button className="primary" disabled={saving} onClick={() => submit('published')}>Опубликовать</button></div></header>
-    {preview ? <article className="article preview"><span className="category">{form.category}</span><h1>{form.title || 'Заголовок публикации'}</h1><p>{form.excerpt}</p>{form.cover_url && <img className="article-cover" src={form.cover_url}/>}<div className="prose" dangerouslySetInnerHTML={{ __html: body.current?.innerHTML || form.content }}/></article>
-      : <div className="editor-grid"><section>
-        <label>Заголовок<input value={form.title} onChange={(event) => { update('title', event.target.value); if (!post) update('slug', event.target.value.toLowerCase().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/^-|-$/g, '')) }}/></label>
-        <label>Краткое описание<textarea value={form.excerpt} onChange={(event) => update('excerpt', event.target.value)}/></label>
-        <div className="toolbar"><button onClick={() => command('bold')} title="Жирный"><Bold/></button><button onClick={() => command('italic')} title="Курсив"><Italic/></button><button onClick={() => command('underline')} title="Подчёркивание"><Underline/></button><button onClick={() => command('formatBlock', 'blockquote')} title="Цитата"><Quote/></button><button onClick={() => command('insertUnorderedList')} title="Маркированный список"><List/></button><button onClick={() => command('insertOrderedList')} title="Нумерованный список"><ListOrdered/></button><button onClick={() => command('formatBlock', 'pre')} title="Код"><Code/></button><button onClick={() => command('createLink', prompt('Введите ссылку'))} title="Ссылка"><LinkIcon/></button></div>
-        <div ref={body} className="rich" dir="ltr" contentEditable suppressContentEditableWarning onInput={(event) => localStorage.setItem('thugger_editor_recovery', event.currentTarget.innerHTML)} dangerouslySetInnerHTML={{ __html: form.content }}/>
-      </section><aside>
-        <label>Обложка<div className="upload">{form.cover_url ? <img src={form.cover_url}/> : <><Image/><span>Выбрать изображение</span></>}<input type="file" accept="image/*" onChange={cover}/></div></label>
-        <label>Адрес статьи<input value={form.slug} onChange={(event) => update('slug', event.target.value)}/></label>
-        <label>Категория<select value={form.category} onChange={(event) => update('category', event.target.value)}>{categories.slice(1).map((category) => <option key={category}>{category}</option>)}</select></label>
-        <label>Теги<input value={form.tags} onChange={(event) => update('tags', event.target.value)} placeholder="боты, релиз"/></label>
-        <label><input type="checkbox" checked={form.featured} onChange={(event) => update('featured', event.target.checked)}/> Закрепить публикацию</label>
-        <label><input type="checkbox" checked={form.recommended} onChange={(event) => update('recommended', event.target.checked)}/> Добавить в рекомендации</label>
-        {notice && <p className="notice">{notice}</p>}
-      </aside></div>}
+  const formatButtons = <><button type="button" onMouseDown={rememberSelection} onClick={() => command('bold')} title="Жирный"><Bold/></button><button type="button" onMouseDown={rememberSelection} onClick={() => command('italic')} title="Курсив"><Italic/></button><button type="button" onMouseDown={rememberSelection} onClick={() => command('underline')} title="Подчёркивание"><Underline/></button><button type="button" onMouseDown={rememberSelection} onClick={() => command('formatBlock', 'blockquote')} title="Цитата"><Quote/></button><button type="button" onMouseDown={rememberSelection} onClick={() => command('insertUnorderedList')} title="Маркированный список"><List/></button><button type="button" onMouseDown={rememberSelection} onClick={() => command('insertOrderedList')} title="Нумерованный список"><ListOrdered/></button><button type="button" onMouseDown={rememberSelection} onClick={() => command('formatBlock', 'pre')} title="Код"><Code/></button><button type="button" onMouseDown={rememberSelection} onClick={openLinkModal} title="Ссылка"><LinkIcon/></button></>
+  return <div className="editor"><header><button type="button" className="back" onClick={onClose}><ArrowLeft/>К публикациям</button><div><button type="button" onClick={togglePreview}><Eye/>{preview ? 'Редактор' : 'Предпросмотр'}</button><button type="button" disabled={saving} onClick={() => submit('draft')}><Save/>Черновик</button><button type="button" className="primary" disabled={saving} onClick={() => submit('published')}>{saving ? 'Сохраняю…' : 'Опубликовать'}</button></div></header>
+    {preview ? <article className="article preview"><span className="category">{form.category}</span><h1>{form.title || 'Заголовок публикации'}</h1><p>{form.excerpt}</p>{form.cover_url && <img className="article-cover" src={form.cover_url} alt=""/>}<div className="prose" dangerouslySetInnerHTML={{ __html: form.content }}/></article> : <div className="editor-grid"><section><label>Заголовок<input value={form.title} onChange={(event) => { update('title', event.target.value); if (!post) update('slug', normalizeSlug(event.target.value)) }}/></label><label>Краткое описание<textarea value={form.excerpt} onChange={(event) => update('excerpt', event.target.value)}/></label><div className="toolbar">{formatButtons}</div><div ref={body} className="rich" dir="ltr" contentEditable suppressContentEditableWarning onMouseUp={rememberSelection} onKeyUp={rememberSelection} onInput={(event) => localStorage.setItem('thugger_editor_recovery', event.currentTarget.innerHTML)} onContextMenu={(event) => { event.preventDefault(); rememberSelection(); setMenu({ x: event.clientX, y: event.clientY }) }} dangerouslySetInnerHTML={{ __html: form.content }}/></section><aside><label>Обложка<div className="upload">{form.cover_url ? <img src={form.cover_url} alt=""/> : <><Image/><span>Выбрать изображение</span></>}<input type="file" accept="image/*" onChange={cover}/></div></label><label>Адрес статьи<input value={form.slug} onChange={(event) => update('slug', normalizeSlug(event.target.value))}/><small className="field-hint">Только буквы, цифры и дефисы</small></label><label>Категория<div className="select-wrap"><select value={form.category} onChange={(event) => update('category', event.target.value)}>{categories.slice(1).map((category) => <option key={category}>{category}</option>)}</select><ChevronDown/></div></label><label>Теги<input value={form.tags} onChange={(event) => update('tags', event.target.value)} placeholder="боты, релиз"/></label><div className="tag-presets">{readyTags.map((tag) => { const active = form.tags.split(',').map((item) => item.trim()).includes(tag); return <button type="button" className={active ? 'active' : ''} key={tag} onClick={() => toggleTag(tag)}>{active && <Check/>}#{tag}</button> })}</div><label className="check-row"><input type="checkbox" checked={form.featured} onChange={(event) => update('featured', event.target.checked)}/> Закрепить публикацию</label><label className="check-row"><input type="checkbox" checked={form.recommended} onChange={(event) => update('recommended', event.target.checked)}/> Добавить в рекомендации</label>{notice && <p className="notice">{notice}</p>}</aside></div>}
+    {menu && <div className="context-format" style={{ left: Math.min(menu.x, window.innerWidth - 300), top: Math.min(menu.y, window.innerHeight - 70) }} onClick={(event) => event.stopPropagation()}>{formatButtons}</div>}
+    {linkModal && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setLinkModal(false) }}><form className="editor-modal" onSubmit={applyLink}><button type="button" className="modal-close" onClick={() => setLinkModal(false)}><X/></button><span>ДОБАВИТЬ ССЫЛКУ</span><h2>Куда ведёт ссылка?</h2><p>Выделенный текст останется на месте и станет кликабельным.</p><input autoFocus value={linkValue} onChange={(event) => setLinkValue(event.target.value)} placeholder="https://example.com"/><div><button type="button" onClick={() => setLinkModal(false)}>Отмена</button><button className="primary" type="submit">Добавить ссылку</button></div></form></div>}
   </div>
 }
