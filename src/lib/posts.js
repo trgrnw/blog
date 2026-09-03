@@ -68,3 +68,20 @@ export async function submitComment(postId, authorName, body) {
   const { error } = await supabase.from('comments').insert({ post_id: postId, author_name: authorName, body, approved: false })
   if (error) throw error
 }
+
+export async function listCommentsForAdmin() {
+  if (!configured) return []
+  const { data, error } = await supabase.from('comments').select('*, posts(title, slug)').order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function approveComment(id) {
+  const { error } = await supabase.from('comments').update({ approved: true }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteComment(id) {
+  const { error } = await supabase.from('comments').delete().eq('id', id)
+  if (error) throw error
+}
