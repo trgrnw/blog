@@ -40,3 +40,6 @@
 .editor-modal > div .primary { border-color: var(--red); background: var(--red); color: white; }
 .modal-close { position: absolute; top: 16px; right: 16px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; }
 .modal-close svg { width: 17px; }
+.delete-modal strong { color: #fff; }
+.editor-modal > div .danger-action { display: inline-flex; align-items: center; gap: 7px; border-color: #6c1620; background: #3a0e13; color: #ff6674; }
+.danger-action svg { width: 16px; height: 16px; }
