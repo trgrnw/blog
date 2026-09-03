@@ -12,3 +12,31 @@
 .comment-body { margin: 10px 0 !important; color: #e1e1e5 !important; font-size: 15px !important; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .admin-row button.approve { color: #40d487; }
 .admin-empty { padding: 45px 24px; text-align: center; color: var(--muted); }
+
+.field-hint { display: block; margin-top: 7px; color: #6f6f78; font-size: 11px; }
+.select-wrap { position: relative; }
+.select-wrap select { appearance: none; padding-right: 42px !important; cursor: pointer; transition: border-color .2s, background .2s; }
+.select-wrap select:hover, .select-wrap select:focus { border-color: #55555d; background: #151518; }
+.select-wrap > svg { position: absolute; right: 13px; top: 50%; width: 17px; transform: translateY(-25%); color: #85858e; pointer-events: none; }
+.tag-presets { display: flex; flex-wrap: wrap; gap: 7px; margin: -8px 0 24px; }
+.tag-presets button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 10px; border: 1px solid #29292e; border-radius: 99px; background: #111114; color: #8f8f98; font-size: 11px; }
+.tag-presets button:hover { border-color: #56565e; color: #fff; }
+.tag-presets button.active { border-color: rgba(237,27,46,.6); background: rgba(237,27,46,.13); color: #ff6674; }
+.tag-presets svg { width: 12px; height: 12px; }
+.check-row { display: flex !important; align-items: center; padding: 10px 0; margin: 0 !important; cursor: pointer; }
+.context-format { position: fixed; z-index: 100; display: flex; gap: 4px; padding: 8px; border: 1px solid #303036; border-radius: 11px; background: rgba(14,14,16,.97); box-shadow: 0 16px 50px rgba(0,0,0,.55); backdrop-filter: blur(14px); }
+.context-format button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #b9b9c0; }
+.context-format button:hover { border-color: #3a3a40; background: #202023; color: #fff; }
+.context-format svg { width: 16px; height: 16px; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.76); backdrop-filter: blur(8px); }
+.editor-modal { position: relative; width: min(480px,100%); padding: 30px; border: 1px solid #303036; border-radius: 18px; background: #0d0d0f; box-shadow: 0 30px 90px rgba(0,0,0,.7); }
+.editor-modal > span { color: var(--red); font: 700 10px Inter,sans-serif; letter-spacing: 2px; }
+.editor-modal h2 { margin: 10px 0 8px; font: 800 25px Inter,sans-serif; }
+.editor-modal p { margin: 0 0 20px; color: var(--muted); line-height: 1.5; }
+.editor-modal input { width: 100%; margin: 0; padding: 13px 14px; border: 1px solid #33333a; border-radius: 10px; outline: 0; background: #151518; color: #fff; }
+.editor-modal input:focus { border-color: var(--red); }
+.editor-modal > div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+.editor-modal > div button, .modal-close { padding: 10px 15px; border: 1px solid #303036; border-radius: 9px; background: #17171a; color: #bbb; }
+.editor-modal > div .primary { border-color: var(--red); background: var(--red); color: white; }
+.modal-close { position: absolute; top: 16px; right: 16px; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; }
+.modal-close svg { width: 17px; }
