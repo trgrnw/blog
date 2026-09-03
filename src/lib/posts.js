@@ -25,9 +25,13 @@ export async function getPost(slug) {
 
 export async function savePost(post) {
   if (!configured) throw new Error('Сначала подключите Supabase в файле .env')
-  const payload = { ...post, tags: String(post.tags || '').split(',').map((tag) => tag.trim()).filter(Boolean), updated_at: new Date().toISOString() }
+  const slug = String(post.slug || '').toLowerCase().trim().replace(/[^a-zа-яё0-9]+/gi, '-').replace(/^-+|-+$/g, '')
+  if (!slug) throw new Error('Укажите корректный адрес статьи: буквы, цифры и дефисы.')
+  const payload = { ...post, slug, tags: String(post.tags || '').split(',').map((tag) => tag.trim().replace(/^#/, '')).filter(Boolean), updated_at: new Date().toISOString() }
   const { data, error } = await supabase.from('posts').upsert(payload).select().single()
-  if (error) throw error
+  if (error?.code === '23505') throw new Error('Такой адрес статьи уже занят. Выберите другой.')
+  if (error?.message?.includes('posts_slug_check')) throw new Error('Адрес статьи может содержать только буквы, цифры и дефисы.')
+  if (error) throw new Error('Не удалось сохранить публикацию: ' + error.message)
   return data
 }
 
